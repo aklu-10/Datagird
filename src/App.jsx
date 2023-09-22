@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { getProducts } from './redux/api/getResourceAsyncThunk.js';
 import AddBoxIcon from '@mui/icons-material/AddBox';
@@ -78,6 +78,8 @@ const App = () => {
   const [filterData, setFilterData] = useState('?_start=0&_end='+rowsPerPage);
   const [Id, setId] = useState('');
   const [formValues, setFormValues] = useState({title:'', description:'', price:''});
+  const [colIds, setColIds] = useState({page0:[]});
+  let prevColIds = useRef();
 
   let dispatch = useDispatch();
 
@@ -137,6 +139,9 @@ const App = () => {
     else
       setFilterData('?_start=0&_end='+rowsPerPage);
     setPage(newPage);
+
+    prevColIds.current = {...prevColIds.current, ...colIds};
+
   };
 
   const handleChangeRowsPerPage = (event) => {
@@ -186,7 +191,7 @@ const App = () => {
 
   const handleRefresh = () =>
   {
-    dispatch(getProducts());
+    dispatch(getProducts(filterData));
   }
 
   useEffect(()=>
@@ -196,10 +201,11 @@ const App = () => {
 
   useEffect(()=>
   {
-    console.log(editData)
     setFormValues({title:editData?.title, description:editData?.description, price:editData?.price})
 
   },[editData]);
+
+  console.log(prevColIds.current)
 
   return (
 
@@ -212,12 +218,20 @@ const App = () => {
             <RefreshIcon style={{fontSize:'2rem'}} onClick={handleRefresh}/>
           </div>
         </div>
-
         
           <DataGrid
             rows={rows}
             columns={columns.concat(actionColumns)}
             loading={status!='success' ? true : false}
+            onRowSelectionModelChange={(data)=>
+              {
+                setColIds({['page'+page]:data})
+                prevColIds.current = {...prevColIds.current, ['page'+page]:data};
+
+              }}
+
+            checkboxSelection
+            rowSelectionModel={prevColIds.current['page'+page]}
             initialState={{
               pagination: {
                 paginationModel: {
